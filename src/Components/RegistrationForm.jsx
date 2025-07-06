@@ -1,63 +1,9 @@
-import React, { useState } from 'react';
-import { Delete, Eye, EyeOff, Upload } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import {BrowserRouter, Routes, Route, Link} from 'react-router-dom';
-import Update from './Components/Update';
-//import Create from './Components/Create';
-import Read from './Components/Read';
-import UserList from './Components/UserList';
-import RegistrationForm from './Components/RegistrationForm';
 
-
-
-const App = () => {
-
-    return(
-      <BrowserRouter>
-
-<nav className= "	bg-gray-900 text-white shadow-md">   
-  <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-    <h1 className="text-2xl font-semibold text-brown-500 italic tracking-wide font-serif">User Management</h1>
-
-    <div className="space-x-6">
-      <Link
-        to="/"
-        className="hover:text-yellow-300 transition duration-300 text-lg font-medium"
-      >
-        Registration
-      </Link>
-      <Link
-        to="/users"
-        className="hover:text-yellow-300 transition duration-300 text-lg font-medium"
-      >
-        Users List
-      </Link>
-    </div>
-  </div>
-</nav>
-
-
-      {/*<nav className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center">
-     
-    
-        <Link to="/" className="hover:text-yellow-300 transition">Registration</Link> 
-        <Link to="/users" className="hover:text-yellow-300 transition">Users List</Link>
-    </nav>*/}
-
-      <Routes>
-        <Route path='/' element={ <RegistrationForm/>}></Route>
-        <Route path='/update/:id' element={ <Update/>}></Route>
-        <Route path='/read/:id' element={ <Read/>}></Route>
-        <Route path='/users' element={ <UserList/>}></Route>
-
-      </Routes>
-      </BrowserRouter>
-    )
-  
-
-
-
-  /* const [values, setValues] = useState({
+const RegistrationForm = () => {
+  const [values, setValues] = useState({
     username: "",
     email: "",
     password: "",
@@ -66,6 +12,8 @@ const App = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const fileInputRef = useRef(null);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -76,7 +24,6 @@ const App = () => {
     setValues({ ...values, uploadfile: e.target.files[0] });
   };
 
-  // ✅ Custom validation function
   const validateInputs = () => {
     const usernameRegex = /^[A-Za-z0-9]{3,16}$/;
     const emailRegex = /^[\w.-]+@[\w.-]+\.[A-Za-z]{2,4}$/;
@@ -90,7 +37,6 @@ const App = () => {
       toast.error("Username must be 3-16 characters, no special symbols");
       return false;
     }
-
     if (!values.email.trim()) {
       toast.error("Email is required");
       return false;
@@ -99,7 +45,6 @@ const App = () => {
       toast.error("Invalid email format");
       return false;
     }
-
     if (!values.password) {
       toast.error("Password is required");
       return false;
@@ -108,12 +53,10 @@ const App = () => {
       toast.error("Password must be 8-20 chars, include letter, number & special char");
       return false;
     }
-
     if (values.password !== values.confirmpassword) {
       toast.error("Passwords do not match");
       return false;
     }
-
     if (!values.uploadfile) {
       toast.error("Please upload your profile image");
       return false;
@@ -127,27 +70,56 @@ const App = () => {
 
     if (!validateInputs()) return;
 
-    const formData = new FormData();
-    formData.append('username', values.username);
-    formData.append('email', values.email);
-    formData.append('password', values.password);
-    formData.append('confirmpassword', values.confirmpassword);
-    formData.append('file', values.uploadfile);
+    const users = JSON.parse(localStorage.getItem("users")) || [];
 
-   
+  // 🚫 Check if email already exists
+  const emailExists = users.some(user => user.email === values.email);
 
-    console.log(Object.fromEntries(formData.entries()));
-    toast.success("Registration Successful!");
+  if (emailExists) {
+    toast.error("This email is already registered!");
+    return;
+  }
+  
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newUser = {
+        username: values.username,
+        email: values.email,
+        password: values.password,
+        image: reader.result, // base64 for preview later
+      };
+  
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      users.push(newUser);
+      localStorage.setItem("users", JSON.stringify(users));
+  
+      toast.success("Registration Successful!");
+  
+      setValues({
+        username: "",
+        email: "",
+        password: "",
+        confirmpassword: "",
+        uploadfile: null,
+      });
+
+      fileInputRef.current.value = null;
+    };
+  
+    reader.readAsDataURL(values.uploadfile);
   };
 
   return (
     <div className="min-h-screen bg-[#eae1df] flex items-center justify-center p-4">
       <Toaster />
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-md w-full max-w-md shadow-md space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-6 rounded-md w-full max-w-md shadow-md space-y-4"
+      >
         <h1 className="text-2xl font-bold">Registration Form</h1>
 
-        {/* Username */
-        /*<div>
+        {/* Username */}
+        <div>
           <label className="block font-semibold">Username:</label>
           <input
             type="text"
@@ -159,8 +131,8 @@ const App = () => {
           />
         </div>
 
-        {/* Email */
-       /* <div>
+        {/* Email */}
+        <div>
           <label className="block font-semibold">Email Address:</label>
           <input
             type="email"
@@ -172,8 +144,8 @@ const App = () => {
           />
         </div>
 
-        {/* Password */
-       /* <div>
+        {/* Password */}
+        <div>
           <label className="block font-semibold">Password:</label>
           <div className="relative">
             <input
@@ -184,14 +156,17 @@ const App = () => {
               value={values.password}
               onChange={handleChange}
             />
-            <span className="absolute right-3 top-4 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+            <span
+              className="absolute right-3 top-4 cursor-pointer"
+              onClick={() => setShowPassword(!showPassword)}
+            >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </span>
           </div>
         </div>
 
-        {/* Confirm Password */
-        /*<div>
+        {/* Confirm Password */}
+        <div>
           <label className="block font-semibold">Re-enter Password:</label>
           <input
             type="password"
@@ -203,33 +178,37 @@ const App = () => {
           />
         </div>
 
-        {/* Upload File */
-        /*<div>
+        {/* Upload File */}
+        <div>
           <label className="block font-semibold">Upload Your Profile</label>
           <div className="flex items-center gap-2 mt-1">
             <input
               type="file"
               accept="image/*"
               onChange={handleFileChange}
+              ref={fileInputRef}
               className="w-full p-2 rounded-md border"
             />
           </div>
           {values.uploadfile && (
-             <img
-             src={URL.createObjectURL(values.uploadfile)}
-             alt="Uploaded Preview"
-             className="w-40 h-40 object-cover rounded-md mt-2 border"
-           />
+            <img
+              src={URL.createObjectURL(values.uploadfile)}
+              alt="Uploaded Preview"
+              className="w-40 h-40 object-cover rounded-md mt-2 border"
+            />
           )}
         </div>
 
-        <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-full font-semibold mt-2">
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-3 rounded-full font-semibold mt-2"
+        >
           Submit
         </button>
       </form>
     </div>
   );
 };
-*/
-}
-export default App
+
+export default RegistrationForm
+
